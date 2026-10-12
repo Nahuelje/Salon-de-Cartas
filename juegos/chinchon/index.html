@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chinchón · Salón de cartas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/arcade.css">
+  <style>
+    .mesa { display: flex; gap: 40px; justify-content: center; align-items: flex-end; flex-wrap: wrap; margin: var(--e2) 0; }
+    .mesa .pila { text-align: center; font-family: var(--fuente-titulo); font-size: 10px; color: #d6e9dc; }
+    .mesa .pila .apilado { margin-bottom: 12px; }
+    .mesa .img-carta { cursor: pointer; }
+    .mesa .img-carta.inactiva { cursor: default; opacity: .6; }
+    .mano { min-height: calc(var(--carta-h) + 32px); }
+    .mano .img-carta { cursor: pointer; }
+    .rivales { display: flex; gap: var(--e3); justify-content: center; flex-wrap: wrap; margin: var(--e2) 0; }
+    .rival { text-align: center; font-size: var(--t-chico); color: #fff; }
+    .rival.turno { color: var(--amarillo); }
+    .rival .abanico { --carta-w: 72px; --carta-h: 103px; --solape: .72; padding: 8px 0 0; }
+    .jugadores { width: 100%; border-collapse: collapse; font-size: var(--t-base); }
+    .jugadores th, .jugadores td { padding: 8px 6px; border-bottom: 2px dashed #3a3d6e; text-align: left; }
+    .jugadores tr.turno { background: var(--panel-claro); }
+    .jugadores tr.eliminado { opacity: .4; }
+    .acciones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: var(--e1); }
+    .aviso { text-align: center; color: var(--amarillo); min-height: 3em; margin: 0; }
+    .cortina { position: fixed; inset: 0; background: rgba(7, 7, 15, .94); display: grid; place-items: center; z-index: 45; padding: var(--e2); }
+    .cortina .caja { background: var(--panel); border: 4px solid var(--borde); padding: var(--e3); text-align: center; max-width: 380px; }
+    .setup label { display: block; margin: 12px 0 4px; color: var(--sub); font-size: var(--t-chico); }
+    .setup select, .setup input { font-family: var(--fuente-texto); font-size: var(--t-base); padding: 8px 12px; background: var(--panel-oscuro); color: var(--texto); border: 3px solid var(--borde); width: 100%; min-height: 44px; }
+    .reglas { color: var(--sub); line-height: 1.7; }
+    .carta-btn { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+    .carta-btn:focus-visible { outline: 3px solid var(--azul); outline-offset: 3px; }
+    /* Combinaciones: una barra de color debajo de cada grupo de cartas */
+    .g0 .img-carta { box-shadow: 0 6px 0 var(--azul); }
+    .g1 .img-carta { box-shadow: 0 6px 0 var(--amarillo); }
+    .g2 .img-carta { box-shadow: 0 6px 0 #ff7ad9; }
+    .g3 .img-carta { box-shadow: 0 6px 0 #ff9f5a; }
+    .modal .caja { max-height: 92vh; overflow-y: auto; }
+    .manos-finales { display: grid; gap: 12px; margin-top: 12px; }
+    .mano-final .abanico { --carta-w: 72px; --carta-h: 103px; --solape: .5; justify-content: flex-start; padding: 8px 0 12px; }
+  </style>
+  <script>const RAIZ = "../../";</script>
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="destello" aria-hidden="true"></div>
+  <div id="banner" aria-hidden="true"></div>
+
+  <main class="contenedor">
+    <div class="barra-top">
+      <a class="btn secundario chico" href="../../index.html">← Salón</a>
+      <h1>Chinchón</h1>
+      <button id="btn-sonido" class="btn secundario chico">Sonido</button>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <section id="setup" class="panel setup">
+      <h2>Nueva partida</h2>
+      <label for="modo">Modo</label>
+      <select id="modo">
+        <option value="bots">Vos contra bots</option>
+        <option value="amigos">Con amigos (pasan el celular)</option>
+      </select>
+
+      <div id="cfg-bots">
+        <label for="cant-bots">Cantidad de bots</label>
+        <select id="cant-bots">
+          <option value="1">1 bot</option>
+          <option value="2" selected>2 bots</option>
+          <option value="3">3 bots</option>
+        </select>
+        <label for="dificultad">Dificultad de los bots</label>
+        <select id="dificultad">
+          <option value="facil">Fácil</option>
+          <option value="normal" selected>Normal</option>
+          <option value="dificil">Difícil</option>
+        </select>
+        <label for="nombre-humano">Tu nombre</label>
+        <input id="nombre-humano" maxlength="10" value="Vos" autocomplete="off">
+      </div>
+
+      <div id="cfg-amigos" class="oculto">
+        <label for="cant-amigos">Cantidad de jugadores</label>
+        <select id="cant-amigos">
+          <option value="2">2 jugadores</option>
+          <option value="3" selected>3 jugadores</option>
+          <option value="4">4 jugadores</option>
+        </select>
+        <div id="nombres-amigos"></div>
+      </div>
+
+      <p class="reglas" style="margin-top:16px">
+        Se reparten 7 cartas. En tu turno robás del mazo o de la pila y descartás una carta.
+        Las escaleras (3 o más del mismo palo, en orden) y los juegos (3 o 4 del mismo número) no suman.
+        Podés <strong>cortar</strong> si lo que te queda suma 5 o menos. Si cortás y alguien tiene menos puntos, sumás 10 de penalidad.
+        Si tu mano de 7 es una escalera del mismo palo, es <strong>chinchón</strong> y restás 25.
+        Llegar a 100 puntos te elimina. Gana el último que queda.
+      </p>
+      <div style="display:flex; gap:12px; flex-wrap:wrap">
+        <button id="btn-empezar" class="btn">▶ Empezar partida</button>
+        <button id="btn-reglas-setup" class="btn secundario">Ver reglas</button>
+      </div>
+    </section>
+
+    <!-- JUEGO -->
+    <section id="juego" class="oculto">
+      <div class="stats-pixel">
+        <div class="stat"><small>Ronda</small><strong id="s-ronda">1</strong></div>
+        <div class="stat"><small>Mazo</small><strong id="s-mazo">0</strong></div>
+      </div>
+
+      <div class="tapete">
+        <div id="rivales-dorso" class="rivales"></div>
+
+        <div class="mesa">
+          <div class="pila">
+            <div class="apilado"><img id="img-mazo" class="img-carta" src="" alt="Mazo" draggable="false"></div>
+            <div>MAZO</div>
+          </div>
+          <div class="pila">
+            <div id="pila-apilada" class="apilado"><img id="img-pila" class="img-carta" src="" alt="Pila de descarte" draggable="false"></div>
+            <div>PILA</div>
+          </div>
+        </div>
+
+        <p id="aviso" class="aviso"></p>
+        <div id="mano" class="abanico mano"></div>
+      </div>
+
+      <div class="acciones">
+        <button id="btn-robar-mazo" class="btn chico">Robar del mazo</button>
+        <button id="btn-robar-pila" class="btn chico">Robar de la pila</button>
+        <button id="btn-ordenar" class="btn secundario chico">Ordenar mano</button>
+        <button id="btn-descartar" class="btn secundario chico">Descartar</button>
+        <button id="btn-cortar" class="btn chico">✂ Cortar</button>
+        <button id="btn-chinchon" class="btn peligro chico">🎉 Chinchón</button>
+        <button id="btn-reglas" class="btn secundario chico">Reglas</button>
+        <button id="btn-abandonar" class="btn peligro chico">Abandonar</button>
+      </div>
+
+      <h2 style="margin-top:24px">Puntajes</h2>
+      <table class="jugadores" id="tabla-jugadores"></table>
+    </section>
+
+    <section class="panel" style="margin-top:24px">
+      <h2>🏆 Ranking de ganadores</h2>
+      <div id="ranking"></div>
+    </section>
+  </main>
+
+  <div id="cortina" class="cortina oculto">
+    <div class="caja">
+      <h2 id="cortina-titulo"></h2>
+      <p id="cortina-texto" style="margin:12px 0"></p>
+      <button id="btn-revelar" class="btn">Ver mi mano</button>
+    </div>
+  </div>
+
+  <div id="modal" class="modal oculto"><div class="caja">
+    <h2 id="modal-titulo"></h2><div id="modal-texto"></div><div id="modal-extra"></div>
+    <button id="modal-btn" class="btn"></button>
+  </div></div>
+  <div id="toasts"></div>
+
+  <script src="../../js/comun.js"></script>
+  <script src="../../js/fx.js"></script>
+  <script src="../../js/cartas.js"></script>
+  <script src="chinchon.js"></script>
+</body>
+</html>

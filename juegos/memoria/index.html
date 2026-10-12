@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memoria de números · Salón de cartas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/arcade.css">
+  <style>
+    .tablero-mem { display: grid; gap: 12px; justify-content: center; margin: var(--e2) auto; }
+    .carta { perspective: 700px; cursor: pointer; width: var(--carta-w); height: var(--carta-h); }
+    .carta-in { position: relative; width: 100%; height: 100%; transition: transform .45s; transform-style: preserve-3d; }
+    .carta.volteada .carta-in, .carta.emparejada .carta-in { transform: rotateY(180deg); }
+    .cara { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .cara.frente { transform: rotateY(180deg); }
+    .cara .img-carta { width: 100%; height: 100%; }
+    .carta.emparejada { opacity: .6; }
+    .carta.emparejada .img-carta { filter: drop-shadow(0 0 6px var(--verde)); }
+    .carta:hover .carta-in { filter: brightness(1.12); }
+    .carta:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+    .controles { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: var(--e2); }
+    .ayuda { text-align: center; color: #d6e9dc; }
+  </style>
+  <script>const RAIZ = "../../";</script>
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="destello" aria-hidden="true"></div>
+  <div id="banner" aria-hidden="true"></div>
+
+  <main class="contenedor">
+    <div class="barra-top">
+      <a class="btn secundario chico" href="../../index.html">← Salón</a>
+      <h1>Memoria de números</h1>
+    </div>
+
+    <div class="stats-pixel">
+      <div class="stat"><small>Nivel</small><strong id="s-nivel">-</strong></div>
+      <div class="stat"><small>Pares</small><strong id="s-pares">0/0</strong></div>
+      <div class="stat"><small>Puntos</small><strong id="s-puntos">0</strong></div>
+      <div class="stat"><small>Fallos</small><strong id="s-fallos">0</strong></div>
+      <div class="stat"><small>Tiempo</small><strong id="s-tiempo">00:00</strong></div>
+    </div>
+
+    <section class="tapete">
+      <p class="ayuda">Dá vuelta dos cartas. Si tienen el mismo número, son un par. Cada nivel agrega más pares.</p>
+      <div id="tablero" class="tablero-mem"></div>
+      <div class="controles">
+        <button id="btn-empezar" class="btn">▶ Empezar</button>
+        <button id="btn-terminar" class="btn peligro chico oculto">Terminar y guardar</button>
+        <button id="btn-sonido" class="btn secundario chico">Sonido</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>🏆 Ranking</h2>
+      <div id="ranking"></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal oculto"><div class="caja">
+    <h2 id="modal-titulo"></h2><div id="modal-texto"></div><div id="modal-extra"></div>
+    <button id="modal-btn" class="btn"></button>
+  </div></div>
+  <div id="toasts"></div>
+
+  <script src="../../js/comun.js"></script>
+  <script src="../../js/fx.js"></script>
+  <script src="../../js/cartas.js"></script>
+  <script src="memoria.js"></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Póker · Salón de cartas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/arcade.css">
+  <style>
+    .setup label { display: block; margin: 12px 0 4px; color: var(--sub); font-size: var(--t-chico); }
+    .setup select, .setup input { font-family: var(--fuente-texto); font-size: var(--t-base); padding: 8px 12px; background: var(--panel-oscuro); color: var(--texto); border: 1px solid var(--borde); border-radius: 10px; width: 100%; min-height: 44px; }
+    .reglas { color: var(--sub); line-height: 1.7; }
+
+    .rivales { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .asiento { background: rgba(5, 20, 14, .55); border: 2px solid rgba(232, 193, 90, .35); border-radius: 14px; padding: 10px 12px; text-align: center; min-width: 150px; position: relative; transition: border-color .2s, box-shadow .2s, opacity .2s; }
+    .asiento.turno { border-color: var(--amarillo); box-shadow: 0 0 0 4px rgba(232, 193, 90, .35); }
+    .asiento.plegado { opacity: .45; }
+    .asiento.ganador { border-color: var(--verde); box-shadow: 0 0 0 4px rgba(94, 224, 122, .4); }
+    .asiento.fuera { opacity: .25; }
+    .asiento .nombre { font-family: var(--fuente-titulo); font-weight: 700; font-size: 14px; }
+    .asiento .fichas { color: var(--amarillo); font-weight: 800; }
+    .asiento .estado { font-size: 13px; color: var(--sub); min-height: 1.4em; }
+    .asiento .cartas { display: flex; justify-content: center; margin: 6px 0; }
+    .asiento .cartas .img-carta { --carta-w: 54px; width: 54px; margin-left: -14px; }
+    .asiento .cartas .img-carta:first-child { margin-left: 0; }
+    .boton-d { display: inline-block; background: #fff; color: #111; border-radius: 50%; width: 22px; height: 22px; line-height: 22px; font-size: 12px; font-weight: 800; margin-left: 4px; }
+
+    .centro { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 18px 0; }
+    .comunes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .comunes .img-carta, .hueco { --carta-w: clamp(56px, 11vw, 92px); width: var(--carta-w); }
+    .hueco { height: calc(var(--carta-w) * 420 / 295); border: 2px dashed rgba(255, 255, 255, .28); border-radius: 8px; }
+    .bote { font-family: var(--fuente-titulo); font-weight: 700; font-size: 20px; color: var(--amarillo); text-shadow: 0 2px 0 rgba(0, 0, 0, .4); }
+    .aviso { text-align: center; color: var(--amarillo); min-height: 3em; margin: 6px 0; font-weight: 700; }
+
+    .mi-asiento { text-align: center; }
+    .mi-asiento .cartas { display: flex; justify-content: center; gap: 10px; margin: 8px 0; }
+    .mi-asiento .cartas .img-carta { --carta-w: clamp(72px, 14vw, 112px); width: var(--carta-w); }
+    .mi-asiento .datos { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; font-weight: 800; }
+    .mi-asiento .jugada { color: var(--verde); font-weight: 800; min-height: 1.5em; }
+    .mi-asiento.turno .cartas { filter: drop-shadow(0 0 14px rgba(232, 193, 90, .8)); }
+
+    .acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; margin-top: 12px; }
+    .subir { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; margin-top: 10px; padding: 12px; background: rgba(5, 20, 14, .45); border-radius: 12px; }
+    .subir input[type="range"] { width: min(260px, 60vw); accent-color: var(--amarillo); }
+    .subir output { font-family: var(--fuente-titulo); font-weight: 700; color: var(--amarillo); min-width: 5ch; text-align: center; }
+
+    .registro { list-style: none; margin: 0; padding: 0; font-size: var(--t-chico); }
+    .registro li { padding: 4px 0; border-bottom: 1px dashed rgba(255, 255, 255, .15); }
+    .registro li:first-child { color: var(--amarillo); }
+
+    .showdown { display: grid; gap: 10px; }
+    .showdown .fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px; border-radius: 10px; background: rgba(0, 0, 0, .25); }
+    .showdown .fila.gana { outline: 2px solid var(--verde); }
+    .showdown .fila .img-carta { --carta-w: 44px; width: 44px; margin-left: -10px; }
+    .showdown .fila .img-carta:first-child { margin-left: 0; }
+    .guia { margin: 0; padding-left: 1.2em; line-height: 1.8; }
+  </style>
+  <script>const RAIZ = "../../";</script>
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="destello" aria-hidden="true"></div>
+  <div id="banner" aria-hidden="true"></div>
+
+  <main class="contenedor">
+    <div class="barra-top">
+      <a class="btn secundario chico" href="../../index.html">← Salón</a>
+      <h1>Póker Texas Hold'em</h1>
+      <button id="btn-velocidad" class="btn secundario chico">Velocidad</button>
+      <button id="btn-guia" class="btn secundario chico">Guía de manos</button>
+      <button id="btn-sonido" class="btn secundario chico">Sonido</button>
+    </div>
+
+    <section id="setup" class="panel setup">
+      <h2>Nueva partida</h2>
+      <label for="cant-bots">Rivales (bots)</label>
+      <select id="cant-bots">
+        <option value="1">1 rival (mano a mano)</option>
+        <option value="2">2 rivales</option>
+        <option value="3" selected>3 rivales</option>
+        <option value="4">4 rivales</option>
+      </select>
+      <label for="fichas">Fichas iniciales</label>
+      <select id="fichas">
+        <option value="1000" selected>1.000</option>
+        <option value="2000">2.000</option>
+        <option value="500">500 (partida rápida)</option>
+      </select>
+      <label for="nombre">Tu nombre</label>
+      <input id="nombre" maxlength="10" value="Vos" autocomplete="off">
+
+      <p class="reglas" style="margin-top:16px">
+        Cada jugador recibe 2 cartas privadas y se juegan 5 cartas comunes en la mesa (flop, turn y river).
+        Armás la mejor mano de 5 cartas entre las 7 disponibles. En cada ronda podés <strong>retirarte</strong>,
+        <strong>igualar</strong> (o pasar si nadie apostó) o <strong>subir</strong>. Las ciegas suben cada 6 manos.
+        Gana el torneo quien se queda con todas las fichas.
+      </p>
+      <button id="btn-empezar" class="btn">▶ Empezar partida</button>
+    </section>
+
+    <section id="juego" class="oculto">
+      <div class="stats-pixel">
+        <div class="stat"><small>Mano</small><strong id="s-mano">1</strong></div>
+        <div class="stat"><small>Ronda</small><strong id="s-fase">-</strong></div>
+        <div class="stat"><small>Ciegas</small><strong id="s-ciegas">10/20</strong></div>
+      </div>
+
+      <div class="tapete">
+        <div id="rivales" class="rivales"></div>
+
+        <div class="centro">
+          <div id="bote" class="bote">Bote: 0</div>
+          <div id="comunes" class="comunes"></div>
+        </div>
+
+        <p id="aviso" class="aviso"></p>
+
+        <div id="mi-asiento" class="mi-asiento">
+          <div class="datos"><span id="mi-nombre"></span><span id="mis-fichas"></span><span id="mi-apuesta"></span></div>
+          <div id="mis-cartas" class="cartas"></div>
+          <div id="mi-jugada" class="jugada"></div>
+        </div>
+
+        <div class="acciones">
+          <button id="btn-plegar" class="btn peligro">Retirarme</button>
+          <button id="btn-igualar" class="btn">Pasar</button>
+        </div>
+        <div class="subir">
+          <button class="btn secundario chico" data-rapido="min">Mínimo</button>
+          <button class="btn secundario chico" data-rapido="medio">½ bote</button>
+          <button class="btn secundario chico" data-rapido="bote">Bote</button>
+          <button class="btn secundario chico" data-rapido="todo">All-in</button>
+          <input id="monto" type="range" min="0" max="0" step="5" value="0" aria-label="Monto a apostar">
+          <output id="monto-salida">0</output>
+          <button id="btn-subir" class="btn">Apostar</button>
+        </div>
+      </div>
+
+      <section class="panel">
+        <h2>Últimas jugadas</h2>
+        <ul id="registro" class="registro"></ul>
+      </section>
+
+      <div style="text-align:center">
+        <button id="btn-abandonar" class="btn peligro chico">Abandonar</button>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:24px">
+      <h2>🏆 Ranking</h2>
+      <div id="ranking"></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal oculto"><div class="caja">
+    <h2 id="modal-titulo"></h2><div id="modal-texto"></div><div id="modal-extra"></div>
+    <button id="modal-btn" class="btn"></button>
+  </div></div>
+  <div id="toasts"></div>
+
+  <script src="../../js/comun.js"></script>
+  <script src="../../js/fx.js"></script>
+  <script src="../../js/cartas.js"></script>
+  <script src="poker.js"></script>
+</body>
+</html>
