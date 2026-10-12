@@ -80,4 +80,3 @@ Los efectos de cartas y fichas de `assets/sonidos/` son del pack **Casino Audio 
 - **Atribución:** no es obligatoria, pero se agradece: *Kenney (www.kenney.nl)*.
 - El texto original de la licencia está en [`assets/sonidos/LICENCIA-sonidos.txt`](assets/sonidos/LICENCIA-sonidos.txt).
 
-> Solo se incluyen los archivos `card-*`, `chip-lay-*` y `chips-stack-*` del pack original.
